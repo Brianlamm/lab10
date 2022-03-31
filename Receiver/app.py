@@ -8,6 +8,7 @@ import uuid
 import datetime 
 import json 
 from pykafka import KafkaClient 
+import time
 
 with open('app_conf.yml', 'r') as f: 
     app_config = yaml.safe_load(f.read())
@@ -17,19 +18,31 @@ with open('log_conf.yml', 'r') as f:
     logging.config.dictConfig(log_config)
 
 logger = logging.getLogger('basicLogger')
+hostname = "%s:%d" % (app_config["events"]["hostname"],   
+                          app_config["events"]["port"]) 
+
+count = 0
+while count < app_config["connection"]["max_count"]:
+    try:
+        client = KafkaClient(hosts=hostname) 
+        topic = client.topics[str.encode(app_config["events"]["topic"])] 
+        break
+        
+    except:
+        time.sleep(app_config["connection"]["wait"])
+        count += 1
 
 def report_ticket_info(body):
     trace_id = str(uuid.uuid4())
     body["trace_id"] = trace_id 
     logging.info(f'Receive event ticket request with a trace id of {body["trace_id"]}')
-    headers = { "content-type": "application/json" }
     # response = requests.post("http://localhost:8090/report/ticket", 
     # json=body, headers=headers)
     # logging.info(f'Returned event ticket response (Id: {body["trace_id"]}) with status {response.status_code}')
-    hostname = "%s:%d" % (app_config["events"]["hostname"],  
-                          app_config["events"]["port"]) 
-    client = KafkaClient(hosts=hostname) 
-    topic = client.topics[str.encode(app_config["events"]["topic"])] 
+    # hostname = "%s:%d" % (app_config["events"]["hostname"],  
+    #                       app_config["events"]["port"]) 
+    # client = KafkaClient(hosts=hostname) 
+    # topic = client.topics[str.encode(app_config["events"]["topic"])] 
     producer = topic.get_sync_producer() 
     msg = { "type": "ticket",  
             "datetime" :    
@@ -45,14 +58,13 @@ def report_sale_info(body):
     trace_id = str(uuid.uuid4())
     body["trace_id"] = trace_id 
     logging.info(f'Receive event ticket request with a trace id of {body["trace_id"]}')
-    headers = { "content-type": "application/json" }
     # response = requests.post("http://localhost:8090/report/sale", 
     # json=body, headers=headers)
     # logging.info(f'Returned event ticket response (Id: {body["trace_id"]}) with status {response.status_code}')
-    hostname = "%s:%d" % (app_config["events"]["hostname"],  
-                          app_config["events"]["port"]) 
-    client = KafkaClient(hosts=hostname) 
-    topic = client.topics[str.encode(app_config["events"]["topic"])] 
+    # hostname = "%s:%d" % (app_config["events"]["hostname"],  
+    #                       app_config["events"]["port"]) 
+    # client = KafkaClient(hosts=hostname) 
+    # topic = client.topics[str.encode(app_config["events"]["topic"])] 
     producer = topic.get_sync_producer() 
     msg = { "type": "sale",  
             "datetime" :    
